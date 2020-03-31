@@ -8,6 +8,7 @@ import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,9 +28,30 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate: " + supportES2);
 
         glSurfaceView = new GLSurfaceView(this);
+        if (supportES2) {
+            // request OpenGl context
+            glSurfaceView.setEGLContextClientVersion(2);
+            glSurfaceView.setRenderer(new CustomRenderer());
+            renderSet = true;
+        } else {
+            Toast.makeText(this, "Device dont support OpenGL ES2", Toast.LENGTH_SHORT).show();
+        }
+        setContentView(glSurfaceView);
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (renderSet){
+            glSurfaceView.onPause();
+        }
+    }
 
-
-        setContentView(R.layout.activity_main);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(renderSet){
+            glSurfaceView.onResume();
+        }
     }
 }
