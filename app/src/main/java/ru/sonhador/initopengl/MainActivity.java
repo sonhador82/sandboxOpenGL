@@ -1,7 +1,5 @@
 package ru.sonhador.initopengl;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ConfigurationInfo;
@@ -9,6 +7,8 @@ import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         if (supportES2) {
             // request OpenGl context
             glSurfaceView.setEGLContextClientVersion(2);
-            glSurfaceView.setRenderer(new CustomRenderer());
+            glSurfaceView.setRenderer(new CustomRenderer(this));
             renderSet = true;
         } else {
             Toast.makeText(this, "Device dont support OpenGL ES2", Toast.LENGTH_SHORT).show();
