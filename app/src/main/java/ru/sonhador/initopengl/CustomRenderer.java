@@ -18,16 +18,20 @@ import static android.opengl.GLES20.GL_FLOAT;
 import static android.opengl.GLES20.GL_LINES;
 import static android.opengl.GLES20.GL_POINTS;
 import static android.opengl.GLES20.GL_TRIANGLES;
+import static android.opengl.GLES20.GL_TRIANGLE_FAN;
 import static android.opengl.GLES20.glClear;
 import static android.opengl.GLES20.glClearColor;
 import static android.opengl.GLES20.glDrawArrays;
 import static android.opengl.GLES20.glEnableVertexAttribArray;
 import static android.opengl.GLES20.glGetAttribLocation;
 import static android.opengl.GLES20.glGetUniformLocation;
+import static android.opengl.GLES20.glLineWidth;
 import static android.opengl.GLES20.glUniform4f;
+import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
 import static android.opengl.GLES20.glVertexAttribPointer;
 import static android.opengl.GLES20.glViewport;
+import static android.opengl.Matrix.*;
 
 class CustomRenderer implements Renderer {
     private final Context context;
@@ -42,24 +46,33 @@ class CustomRenderer implements Renderer {
     private static final String A_POSITION = "a_Position";
     private int aPositionLocation;
 
+    private static final String U_MATRIX = "u_Matrix";
+    private final float[] projectionMatrix = new float[16];
+    private int uMatrixLocation;
+
+    private static final String A_COLOR = "a_Color";
+    private static final int COLOR_COMPONENT_COUNT = 3;
+    private static final int STRIDE = (POSITIONAL_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
+    private int aColorLocation;
+
     CustomRenderer(Context context) {
         this.context = context;
         float[] tableVertices = {
-                -0.5f, -0.5f,
-                0.5f, 0.5f,
-                -0.5f, 0.5f,
-
-                -0.5f, -0.5f,
-                0.5f, -0.5f,
-                0.5f, 0.5f,
+                // x y r g b
+                0f, 0f, 1f, 1f, 1f,
+                -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
+                0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
+                0.5f, 0.5f, 0.7f, 0.7f, 0.7f,
+                -0.5f, 0.5f, 0.7f, 0.7f, 0.7f,
+                -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
 
                 // line 1
-                -0.5f, 0f,
-                0.5f, 0f,
+                -0.5f, 0f, 1f, 0, 0,
+                0.5f, 0f, 1f, 0, 0,
 
                 // mallets
-                0f, -0.25f,
-                0f, 0.251f
+                0f, -0.25f, 0f, 0f, 1f,
+                0f, 0.251f, 1f, 0f, 0f
         };
 
         vertexData = ByteBuffer.allocateDirect(tableVertices.length * BYTES_PER_FLOAT)
@@ -86,34 +99,51 @@ class CustomRenderer implements Renderer {
         ShaderHelper.validateProgram(program);
         glUseProgram(program);
 
-        uColorLocation = glGetUniformLocation(program, U_COLOR);
+        //uColorLocation = glGetUniformLocation(program, U_COLOR);
+        aColorLocation = glGetAttribLocation(program, A_COLOR);
         aPositionLocation = glGetAttribLocation(program, A_POSITION);
+        uMatrixLocation = glGetUniformLocation(program, U_MATRIX);
 
         vertexData.position(0);
         glVertexAttribPointer(aPositionLocation,
                 POSITIONAL_COMPONENT_COUNT, GL_FLOAT,
-                false, 0, vertexData);
+                false, STRIDE, vertexData);
         glEnableVertexAttribArray(aPositionLocation);
+
+        vertexData.position(POSITIONAL_COMPONENT_COUNT);
+        glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, vertexData);
+        glEnableVertexAttribArray(aColorLocation);
+
+
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl10, int width, int height) {
         glViewport(0, 0, width, height);
+        final float aspectRatio = width > height ?
+                (float) width / (float) height :
+                (float) height / (float) width;
+        if (width > height){
+            orthoM(projectionMatrix, 0, -aspectRatio, aspectRatio,
+                    -1f, 1f, -1f, 1f);
+        } else {
+            orthoM(projectionMatrix, 0, -1f, 1f,
+                    -aspectRatio, aspectRatio, -1f, 1f);
+        }
     }
 
     @Override
     public void onDrawFrame(GL10 gl10) {
         glClear(GL_COLOR_BUFFER_BIT);
-        glUniform4f(uColorLocation, 1f, 1f, 1f, 1f);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0);
 
-        glUniform4f(uColorLocation, 1f, 0f, 0f, 1f);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
+
+        glLineWidth(10f);
         glDrawArrays(GL_LINES, 6, 2);
 
-        glUniform4f(uColorLocation, 0f, 0f, 1f, 1f);
         glDrawArrays(GL_POINTS, 8, 2);
 
-        glUniform4f(uColorLocation, 1f, 0f, 0f, 1f);
         glDrawArrays(GL_POINTS, 9, 1);
     }
 }
