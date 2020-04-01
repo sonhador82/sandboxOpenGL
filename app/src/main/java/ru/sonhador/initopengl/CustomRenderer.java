@@ -55,6 +55,8 @@ class CustomRenderer implements Renderer {
     private static final int STRIDE = (POSITIONAL_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
     private int aColorLocation;
 
+    private final float[] modelMatrix = new float[16];
+
     CustomRenderer(Context context) {
         this.context = context;
         float[] tableVertices = {
@@ -120,16 +122,13 @@ class CustomRenderer implements Renderer {
     @Override
     public void onSurfaceChanged(GL10 gl10, int width, int height) {
         glViewport(0, 0, width, height);
-        final float aspectRatio = width > height ?
-                (float) width / (float) height :
-                (float) height / (float) width;
-        if (width > height){
-            orthoM(projectionMatrix, 0, -aspectRatio, aspectRatio,
-                    -1f, 1f, -1f, 1f);
-        } else {
-            orthoM(projectionMatrix, 0, -1f, 1f,
-                    -aspectRatio, aspectRatio, -1f, 1f);
-        }
+        perspectiveM(projectionMatrix, 0, 45, (float) width / (float) height, 1f, 10f);
+        setIdentityM(modelMatrix, 0);
+        translateM(modelMatrix, 0, 0, 0, -2.5f);
+        rotateM(modelMatrix, 0, -60f, 1f, 0, 0f);
+        final float[] temp = new float[16];
+        multiplyMM(temp, 0, projectionMatrix, 0, modelMatrix, 0);
+        System.arraycopy(temp, 0, projectionMatrix, 0, temp.length);
     }
 
     @Override
